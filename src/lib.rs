@@ -68,10 +68,19 @@ pub fn get_args() -> MyResult<Config> {
 }
 
 pub fn run(cfg: Config) -> MyResult<()> {
-    for filename in cfg.files {
+    let num_files = cfg.files.len();
+
+    for (file_num, filename) in cfg.files.iter().enumerate() {
         match open(&filename) {
             Err(e) => eprintln!("{}: {}", filename, e),
             Ok(mut file) => {
+                if num_files > 1 {
+                    println!(
+                        "{}==> {} <==",
+                        if file_num > 0 { "\n" } else { "" },
+                        filename
+                    );
+                }
                 if let Some(num_bytes) = cfg.bytes {
                     let mut handle = file.take(num_bytes as u64);
                     let mut buffer = vec![0; num_bytes];
