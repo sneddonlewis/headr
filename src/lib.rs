@@ -5,7 +5,7 @@ use clap::{App, Arg};
 use std::{
     error::Error,
     fs::File,
-    io::{self, BufRead, BufReader},
+    io::{self, BufRead, BufReader, Read},
 };
 
 type MyResult<T> = Result<T, Box<dyn Error>>;
@@ -32,9 +32,11 @@ pub fn get_args() -> MyResult<Config> {
         )
         .arg(
             Arg::with_name("bytes")
-                .short("b")
+                .short("c")
                 .long("bytes")
                 .value_name("BYTES")
+                .takes_value(true)
+                .conflicts_with("lines")
                 .help("Number of bytes"),
         )
         .arg(
@@ -66,13 +68,28 @@ pub fn get_args() -> MyResult<Config> {
 }
 
 pub fn run(cfg: Config) -> MyResult<()> {
-    println!("{:#?}", cfg);
-
     for filename in cfg.files {
         match open(&filename) {
             Err(e) => eprintln!("{}: {}", filename, e),
-            Ok(_) => println!("Opened {}", filename),
-        }
+            Ok(mut file) => {
+                if let Some(num_bytes) = cfg.bytes {
+                    let mut handle = file.take(num_bytes as u64);
+                    let mut buffer = vec![0; num_bytes];
+                    let bytes_read = handle.read(&mut buffer)?;
+                    print!("{}", String::from_utf8_lossy(&buffer[..bytes_read]));
+                } else {
+                    let mut line = String::new();
+                    for _ in 0..cfg.lines {
+                        let bytes = file.read_line(&mut line)?;
+                        if bytes == 0 {
+                            break;
+                        }
+                        println!("{}", line);
+                        line.clear();
+                    }
+                }
+            }
+        };
     }
 
     Ok(())
