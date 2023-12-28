@@ -56,7 +56,7 @@ pub fn get_args() -> MyResult<Config> {
     Ok(Config {
         files: matches.values_of_lossy("files").unwrap(),
         lines: lines.unwrap(),
-        bytes: bytes,
+        bytes,
     })
 }
 
